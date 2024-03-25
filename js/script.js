@@ -7,75 +7,55 @@ let urlPokemon =`https://pokeapi.co/api/v2/pokemon/`
 let url = `https://pokeapi.co/api/v2/pokemon/?limit=10&offset=${sumaPagina}`;
 const searchBtn = document.getElementById('searchBtn')
 const selectPkmn = document.getElementById('searchInput')
-const obtenerImg = (pokemon) => {
-    fetch(`https://pokeapi.co/api/v2/pokemon/${pokemon.name}`).then((response) => {
-        if(!response.ok) {
-            throw new Error('Respuesta no conseguida')
-        }
-        return response.json()
-    }).then((data) => {
-        let imgPokemon = document.createElement("img");
-        
-        imgPokemon.src = data.sprites.other.dream_world.front_default
-    
-        return imgPokemon 
-        
-    })
-    
-}
-/*const promesaPokemon = new Promise((resolve)=> {
-    resolve(obtenerImg(pokemon))*()
-})*/
+
 const obtenerPokemon = async () => {
-  contenedorPokemon.innerHTML = "";
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error("Pokemon no encontrado", response.status);
-    }
+  const response = await fetch(url);
+  const pokemons = await response.json();
+  console.log(pokemons)
 
-    const data = await response.json();
-    console.log(data)
+  const imagesPromises = []
+
+  pokemons.results.map(poke => {
+    imagesPromises.push(fetch(urlPokemon+poke.name));
+  });
+
+  const responses = await Promise.all(imagesPromises);
+  console.log(responses)
+  const imagestojson = []
+  responses.map(it => imagestojson.push(it.json()))
+  const images = await Promise.all(imagestojson)
+  console.log(images)
+
+  pintaPokemons(pokemons, images)
+}
+
+const pintaPokemons = (pokemons, images) => {
+  pokemons.results.forEach((pokemon, i) => {
+        
+    let ulPokemon = document.createElement("ul");
+    let liPokemon = document.createElement("li");
+    let nameDOM = document.createElement("h2");
+    let img = document.createElement('img');
+    img.src = images[i].sprites.other.home.front_default
     
+    nameDOM.innerText = pokemon.name.toUpperCase();
+    liPokemon.append(img, nameDOM);
+    ulPokemon.appendChild(liPokemon);
+    contenedorPokemon.appendChild(ulPokemon);
     
- 
-    data.results.sort((a, b) => a.name.localeCompare(b.name));
-    
-    data.results.forEach((pokemon, i) => {
-        
-        let ulPokemon = document.createElement("ul");
-        let liPokemon = document.createElement("li");
-        let nameDOM = document.createElement("p");
-        let nameText = document.createTextNode(pokemon.name.toUpperCase());
-       
-        
-        nameDOM.appendChild(nameText);
-        liPokemon.appendChild(nameDOM);
-        ulPokemon.appendChild(liPokemon);
-        contenedorPokemon.appendChild(ulPokemon);
-        
-        /*let color = localStorage.getItem(`${pokemon.name}-color`);
-        if (color) {
-            liPokemon.style.backgroundColor = color;
-        } */
-        
-        liPokemon.addEventListener('click', ()=> {
-            /*liPokemon.styles.backgroundColor = 'orange';
-            localStorage(`${pokemon.name}-color`, 'orange')*/
 
-            let favoritos = JSON.parse(localStorage.getItem('favoritos'))|| [];
-            favoritos.push(pokemon.name);
-            localStorage.setItem('favoritos', JSON.stringify(favoritos))
+    liPokemon.addEventListener('click', ()=> {
+        /*liPokemon.styles.backgroundColor = 'orange';
+        localStorage(`${pokemon.name}-color`, 'orange')*/
+
+        let favoritos = JSON.parse(localStorage.getItem('favoritos'))|| [];
+        favoritos.push(pokemon.name);
+        localStorage.setItem('favoritos', JSON.stringify(favoritos))
 
 
-        })
-        
     })
-    
-  } catch (error) {
-    console.log("Error al obtener los datos", error);
-  }
-};
+  })
+}
 
 nextBtn.addEventListener("click", () => {
   sumaPagina += 10;
@@ -91,7 +71,6 @@ prevBtn.addEventListener("click", () => {
   }
 });
 
-obtenerPokemon();
 
 searchBtn.addEventListener('click', () => {
     url = `https://pokeapi.co/api/v2/pokemon/${selectPkmn.value}`
@@ -121,3 +100,4 @@ searchBtn.addEventListener('click', () => {
         
 })
 
+obtenerPokemon()
